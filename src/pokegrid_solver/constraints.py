@@ -63,3 +63,108 @@ class PokemonIsMonotype(Constraint):
         subset_allowed = set().union(*subset_sets) if subset_sets else set
         return monotypes & subset_allowed
 
+
+class PokemonIsDualType(Constraint):
+    def __init__(self):
+        super().__init__()
+
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+
+
+class PokemonResistantToType(Constraint):
+    def __init__(self, resistant_to):
+        super().__init__()
+    
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
+class PokemonWeakToType(Constraint):
+    def __init__(self, weak_to):
+        super().__init__()
+    
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
+class PokemonNeutralToType(Constraint):
+    def __init__(self, neutral_to):
+        super().__init__()
+
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+
+
+class PokemonFirstEvolutionLine(Constraint):
+    def __init__(self):
+        super().__init__()
+    
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
+class PokemonMiddleEvolutionLine(Constraint):
+    def __init__(self):
+        super().__init__()
+
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
+class PokemonFinalEvolutionLine(Constraint):
+    def __init__(self):
+        super().__init__()
+
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+
+
+class PokemonNoEvolutionLine(Constraint):
+    def __init__(self):
+        super().__init__()
+    
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
+class PokemonIsLegendary(Constraint):
+    def __init__(self):
+        super().__init__()
+    
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
+class PokemonCanLearnMove(Constraint):
+    def __init__(self):
+        super().__init__()
+
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+
+
+class PokemonFirstSeenInGeneration(Constraint):
+    def __init__(self):
+        super().__init__()
+
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
+class PokemonShorterThan(Constraint):
+    def __init__(self):
+        super().__init__()
+    
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
+class PokemonTallerThan(Constraint):
+    def __init__(self):
+        super().__init__()
+
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
