@@ -8,6 +8,17 @@ import aiopoke
 from pokegrid_solver.pokeapi_constants import PokeAPIConstants
 
 class Constraint:
+    async def _gather_pokemon_for_constraint(self, client, constraints: List["Constraint"]):
+        """
+        Utility to gather all the pokemon that satisfy the PokemonHasType constraint
+
+        :param client: aiopoke client
+        :param constraints: list of constraints
+        :return: a set of pokemon that satisfy the constraints
+        """
+        type_sets = await asyncio.gather(*(c.determine_pkmn_set(client) for c in constraints))
+        return type_sets
+    
     @abc.abstractmethod
     async def determine_pkmn_set(self, client: aiopoke.AiopokeClient) -> Set:
         raise NotImplementedError()
@@ -33,22 +44,11 @@ class PokemonIsMonotype(Constraint):
         super().__init__()
         self._type_constraint = type_constraint
 
-    async def _gather_pokemon_for_set(self, client, constraints):
-        """
-        Utility to gather all the pokemon that satisfy the PokemonHasType constraint
-
-        :param client: aiopoke client
-        :param constraints: list of constraints
-        :return: a set of pokemon that satisfy the constraints
-        """
-        type_sets = await asyncio.gather(*(c.determine_pkmn_set(client) for c in constraints))
-        return type_sets
-
     async def _get_all_pokemon_type_set(self, client) -> Set[str]:
         constants = await PokeAPIConstants.get_instance(client)
         all_types_list = await constants.pokemon_types
         all_type_constraints = [PokemonHasType(p_type) for p_type in all_types_list]
-        all_type_sets = await self._gather_pokemon_for_set(client, all_type_constraints)
+        all_type_sets = await self._gather_pokemon_for_constraint(client, all_type_constraints)
         return all_type_sets
 
     async def determine_pkmn_set(self, client) -> Set:
@@ -59,41 +59,223 @@ class PokemonIsMonotype(Constraint):
         if not self._type_constraint:
             return monotypes
 
-        subset_sets = await self._gather_pokemon_for_set(client, [self._type_constraint])
+        subset_sets = await self._gather_pokemon_for_constraint(client, [self._type_constraint])
         subset_allowed = set().union(*subset_sets) if subset_sets else set
         return monotypes & subset_allowed
 
 
-class PokemonIsDualType(Constraint):
-    def __init__(self):
+class PokemonIsDualType(PokemonIsMonotype):
+    def __init__(self, type_constraint: Optional[PokemonHasType] = None):
         super().__init__()
+        self._type_constraint = type_constraint
 
-    async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
+    async def determine_pkmn_set(self, client) -> Set[str]:
+        all_type_sets = await self._get_all_pokemon_type_set(client)
+        counter = Counter(p for s in all_type_sets for p in s)
+
+        # Dual (or multi) type Pokémon appear in at least 2 type sets
+        dualtypes = {p for p, cnt in counter.items() if cnt >= 2}
+
+        if not self._type_constraint:
+            return dualtypes
+
+        subset_sets = await self._gather_pokemon_for_constraint(client, [self._type_constraint])
+        subset_allowed = set().union(*subset_sets) if subset_sets else set()
+        return dualtypes & subset_allowed
 
 
 class PokemonResistantToType(Constraint):
     def __init__(self, resistant_to):
         super().__init__()
+        self._resistant_to = resistant_to
     
-    async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
+    async def determine_pkmn_set(self, client: aiopoke.AiopokeClient) -> Set[str]:
+        """
+        Return Pokémon whose overall damage multiplier vs the given attacking type is < 1.0.
+        This accounts for dual types by multiplying per-type modifiers:
+          - no_damage_to -> 0x (immunity)
+          - half_damage_to -> 0.5x (resist)
+          - double_damage_to -> 2x (weak)
+        """
+        atk_type = await client.get_type(self._resistant_to)
+
+        # Collect defender type names for each effectiveness category
+        immune_def_types = [t.name for t in atk_type.damage_relations.no_damage_to]
+        resist_def_types = [t.name for t in atk_type.damage_relations.half_damage_to]
+        weak_def_types   = [t.name for t in atk_type.damage_relations.double_damage_to]
+
+        # Helper to fetch the set of Pokémon for each defender type
+        async def type_to_pokemon_set(type_name: str) -> Set[str]:
+            return await PokemonHasType(type_name).determine_pkmn_set(client)
+
+        # Fetch sets concurrently
+        immune_sets, resist_sets, weak_sets = await asyncio.gather(
+            asyncio.gather(*(type_to_pokemon_set(t) for t in immune_def_types)),
+            asyncio.gather(*(type_to_pokemon_set(t) for t in resist_def_types)),
+            asyncio.gather(*(type_to_pokemon_set(t) for t in weak_def_types)),
+        )
+
+        # Flatten (handle empty lists gracefully)
+        immune_sets = immune_sets or []
+        resist_sets = resist_sets or []
+        weak_sets   = weak_sets or []
+
+        # Count per-Pokémon how many of its types fall into immune/resist/weak categories
+        immune_counts: Counter[str] = Counter()
+        resist_counts: Counter[str] = Counter()
+        weak_counts:   Counter[str] = Counter()
+
+        for s in immune_sets:
+            for p in s:
+                immune_counts[p] += 1
+        for s in resist_sets:
+            for p in s:
+                resist_counts[p] += 1
+        for s in weak_sets:
+            for p in s:
+                weak_counts[p] += 1
+
+        # Universe to consider = any Pokémon that appear in any relevant set
+        universe: Set[str] = set(immune_counts) | set(resist_counts) | set(weak_counts)
+
+        resistant: Set[str] = set()
+        for p in universe:
+            if immune_counts[p] > 0:
+                # Any immunity yields 0x overall
+                resistant.add(p)
+                continue
+
+            # Multiply modifiers for each applicable defending type the Pokémon has
+            # (most Pokémon have 1 or 2 types; counts capture dual-typing)
+            modifier = (0.5 ** resist_counts[p]) * (2.0 ** weak_counts[p])
+
+            if modifier < 1.0:
+                resistant.add(p)
+
+        return resistant
     
 
 class PokemonWeakToType(Constraint):
-    def __init__(self, weak_to):
+    def __init__(self, weak_to: str):
         super().__init__()
+        self.weak_to = weak_to
     
-    async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
-    
+    async def determine_pkmn_set(self, client: aiopoke.AiopokeClient) -> Set[str]:
+        """
+        Return Pokémon whose overall damage multiplier vs the given attacking type is > 1.0.
+        Accounts for dual typing by multiplying per-type modifiers.
+        """
+        atk_type = await client.get_type(self.weak_to)
+
+        immune_def_types = [t.name for t in atk_type.damage_relations.no_damage_to]
+        resist_def_types = [t.name for t in atk_type.damage_relations.half_damage_to]
+        weak_def_types   = [t.name for t in atk_type.damage_relations.double_damage_to]
+
+        async def type_to_pokemon_set(type_name: str) -> Set[str]:
+            return await PokemonHasType(type_name).determine_pkmn_set(client)
+
+        immune_sets, resist_sets, weak_sets = await asyncio.gather(
+            asyncio.gather(*(type_to_pokemon_set(t) for t in immune_def_types)),
+            asyncio.gather(*(type_to_pokemon_set(t) for t in resist_def_types)),
+            asyncio.gather(*(type_to_pokemon_set(t) for t in weak_def_types)),
+        )
+
+        immune_sets = immune_sets or []
+        resist_sets = resist_sets or []
+        weak_sets   = weak_sets or []
+
+        immune_counts: Counter[str] = Counter()
+        resist_counts: Counter[str] = Counter()
+        weak_counts:   Counter[str] = Counter()
+
+        for s in immune_sets:
+            for p in s:
+                immune_counts[p] += 1
+        for s in resist_sets:
+            for p in s:
+                resist_counts[p] += 1
+        for s in weak_sets:
+            for p in s:
+                weak_counts[p] += 1
+
+        universe: Set[str] = set(immune_counts) | set(resist_counts) | set(weak_counts)
+
+        weak_overall: Set[str] = set()
+        for p in universe:
+            if immune_counts[p] > 0:
+                # Any immunity cancels weakness (0x overall).
+                continue
+            # Overall modifier = 0.5^(#resist) * 2^(#weak) = 2^(weak - resist)
+            if weak_counts[p] > resist_counts[p]:
+                weak_overall.add(p)
+
+        return weak_overall
 
 class PokemonNeutralToType(Constraint):
-    def __init__(self, neutral_to):
+    def __init__(self, neutral_to: str):
         super().__init__()
+        self._neutral_to = neutral_to
 
-    async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
+    async def determine_pkmn_set(self, client: aiopoke.AiopokeClient) -> Set[str]:
+        """
+        Return Pokémon whose overall damage multiplier vs the given attacking type is exactly 1.0.
+        This includes single-type Pokémon that are neutral, and dual-types whose modifiers cancel
+        (e.g., one resists and the other is weak).
+        """
+        atk_type = await client.get_type(self._neutral_to)
+
+        immune_def_types = [t.name for t in atk_type.damage_relations.no_damage_to]
+        resist_def_types = [t.name for t in atk_type.damage_relations.half_damage_to]
+        weak_def_types   = [t.name for t in atk_type.damage_relations.double_damage_to]
+
+        async def type_to_pokemon_set(type_name: str) -> Set[str]:
+            return await PokemonHasType(type_name).determine_pkmn_set(client)
+
+        # Sets that affect the multiplier (non-1x categories)
+        immune_sets, resist_sets, weak_sets = await asyncio.gather(
+            asyncio.gather(*(type_to_pokemon_set(t) for t in immune_def_types)),
+            asyncio.gather(*(type_to_pokemon_set(t) for t in resist_def_types)),
+            asyncio.gather(*(type_to_pokemon_set(t) for t in weak_def_types)),
+        )
+
+        immune_sets = immune_sets or []
+        resist_sets = resist_sets or []
+        weak_sets   = weak_sets or []
+
+        immune_counts: Counter[str] = Counter()
+        resist_counts: Counter[str] = Counter()
+        weak_counts:   Counter[str] = Counter()
+
+        for s in immune_sets:
+            for p in s:
+                immune_counts[p] += 1
+        for s in resist_sets:
+            for p in s:
+                resist_counts[p] += 1
+        for s in weak_sets:
+            for p in s:
+                weak_counts[p] += 1
+
+        # Build full Pokémon universe (all Pokémon of any type) so that neutrals
+        # whose types never appear in the above lists are included.
+        constants = await PokeAPIConstants.get_instance(client)
+        all_types_list = await constants.pokemon_types
+        all_type_sets = await asyncio.gather(
+            *(PokemonHasType(t).determine_pkmn_set(client) for t in all_types_list)
+        )
+        universe_all: Set[str] = set().union(*all_type_sets) if all_type_sets else set()
+
+        neutral_overall: Set[str] = set()
+        for p in universe_all:
+            if immune_counts[p] > 0:
+                # Any immunity => not neutral (0x).
+                continue
+            # Overall modifier = 2^(weak - resist).
+            # Neutral iff exponent == 0  <=> weak_count == resist_count.
+            if weak_counts[p] == resist_counts[p]:
+                neutral_overall.add(p)
+
+        return neutral_overall
 
 
 class PokemonFirstEvolutionLine(Constraint):
@@ -128,7 +310,7 @@ class PokemonNoEvolutionLine(Constraint):
         return await super().determine_pkmn_set(client)
     
 
-class PokemonIsLegendary(Constraint):
+class PokemonIsLegendaryMythical(Constraint):
     def __init__(self):
         super().__init__()
     
@@ -137,7 +319,7 @@ class PokemonIsLegendary(Constraint):
     
 
 class PokemonCanLearnMove(Constraint):
-    def __init__(self):
+    def __init__(self, move_name):
         super().__init__()
 
     async def determine_pkmn_set(self, client):
@@ -145,15 +327,18 @@ class PokemonCanLearnMove(Constraint):
 
 
 class PokemonFirstSeenInGeneration(Constraint):
-    def __init__(self):
+    def __init__(self, gen_number):
         super().__init__()
+        self._gen_number = gen_number
 
     async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
+        generation = await client.get_generation(self._gen_number)
+        generation_pokemon = generation.pokemon_species
+        return {pkmn.name for pkmn in generation_pokemon}
     
 
 class PokemonShorterThan(Constraint):
-    def __init__(self):
+    def __init__(self, feet, inches):
         super().__init__()
     
     async def determine_pkmn_set(self, client):
@@ -161,7 +346,7 @@ class PokemonShorterThan(Constraint):
     
 
 class PokemonTallerThan(Constraint):
-    def __init__(self):
+    def __init__(self, feet, inches):
         super().__init__()
 
     async def determine_pkmn_set(self, client):

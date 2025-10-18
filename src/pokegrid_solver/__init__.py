@@ -18,7 +18,8 @@ async def entrypoint():
         print(all_types)
 
         print("------")
-        monotype_constraint = constraints.PokemonIsMonotype(flying_constraint)
+        water_constraint = constraints.PokemonHasType('water')
+        monotype_constraint = constraints.PokemonIsMonotype(water_constraint)
         monotypes = await monotype_constraint.determine_pkmn_set(client)
         print(monotypes)
 
