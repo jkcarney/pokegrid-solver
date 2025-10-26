@@ -1,3 +1,6 @@
+from pokegrid_solver.monkeypatch_aiopoke import patch_all
+patch_all()
+
 import pytest
 import pytest_asyncio
 import aiopoke
@@ -18,6 +21,10 @@ from pokegrid_solver.constraints import (
     PokemonFirstSeenInGeneration,
     PokemonShorterThan,
     PokemonTallerThan,
+    PokemonCanMegaEvolve,
+    PokemonIsMegaEvolution,
+    PokemonHeavierThan,
+    PokemonLighterThan
 )
 
 @pytest_asyncio.fixture(loop_scope="module")
@@ -131,6 +138,8 @@ async def test_pokemon_first_evolution_line(aiopoke_client):
     # NOT base-with-evolution
     assert "charmeleon" not in result
     assert "charizard" not in result
+    # dont include ones with no evolution line
+    assert "tauros" not in result
 
 
 @pytest.mark.asyncio(loop_scope="module")
@@ -145,6 +154,7 @@ async def test_pokemon_middle_evolution_line(aiopoke_client):
     # NOT middle-stage
     assert "bulbasaur" not in result
     assert "charizard" not in result
+    assert "tauros" not in result
 
 
 @pytest.mark.asyncio(loop_scope="module")
@@ -155,10 +165,14 @@ async def test_pokemon_final_evolution_line(aiopoke_client):
     # final-stage examples
     assert "venusaur" in result
     assert "charizard" in result
+    assert "gallade" in result
+    assert "gardevoir" in result
 
     # NOT final-stage
     assert "bulbasaur" not in result
     assert "charmeleon" not in result
+    assert "kirlia" not in result
+    assert "tauros" not in result
 
 
 @pytest.mark.asyncio(loop_scope="module")
@@ -244,3 +258,30 @@ async def test_pokemon_taller_than(aiopoke_client):
     # not over 6'0"
     assert "pikachu" not in result
     assert "charmander" not in result
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_pokemon_can_mega_evolve(aiopoke_client):
+    can_mega = PokemonCanMegaEvolve()
+    result = await can_mega.determine_pkmn_set(aiopoke_client)
+
+    assert "charizard" in result
+    assert "rayquaza" in result
+
+    assert "haxorus" not in result
+    assert "charmander" not in result
+    assert "panpour" not in result
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_pokemon_is_mega_evolution(aiopoke_client):
+    is_mega = PokemonIsMegaEvolution()
+    result = await is_mega.determine_pkmn_set(aiopoke_client)
+
+    assert "charizard-mega-x" in result
+    assert "scizor-mega" in result
+    assert "rayquaza-mega" in result
+
+    assert "charizard" not in result
+    assert "piplup" not in result
+    

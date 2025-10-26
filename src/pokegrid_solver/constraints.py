@@ -283,7 +283,9 @@ class PokemonFirstEvolutionLine(Constraint):
         super().__init__()
     
     async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
+        constants = await PokeAPIConstants.get_instance(client)
+        first_evolutions = await constants.first_evolutions
+        return first_evolutions
     
 
 class PokemonMiddleEvolutionLine(Constraint):
@@ -291,7 +293,9 @@ class PokemonMiddleEvolutionLine(Constraint):
         super().__init__()
 
     async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
+        constants = await PokeAPIConstants.get_instance(client)
+        middle_evolutions = await constants.middle_evolutions
+        return middle_evolutions
     
 
 class PokemonFinalEvolutionLine(Constraint):
@@ -299,7 +303,9 @@ class PokemonFinalEvolutionLine(Constraint):
         super().__init__()
 
     async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
+        constants = await PokeAPIConstants.get_instance(client)
+        final_evolutions = await constants.final_evolutions
+        return final_evolutions
 
 
 class PokemonNoEvolutionLine(Constraint):
@@ -307,7 +313,30 @@ class PokemonNoEvolutionLine(Constraint):
         super().__init__()
     
     async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
+        constants = await PokeAPIConstants.get_instance(client)
+        no_evolutions = await constants.no_evolutions
+        return no_evolutions
+
+class PokemonCanMegaEvolve(Constraint):
+    def __init__(self):
+        super().__init__()
+    
+    async def determine_pkmn_set(self, client):
+        constants = await PokeAPIConstants.get_instance(client)
+        all_pokemon = await constants.all_pokemon
+        megas = [pokemon for pokemon in all_pokemon if "-mega" in pokemon]
+        megas = set(map(lambda s: s.split("-mega", 1)[0], megas))
+        return megas
+    
+class PokemonIsMegaEvolution(Constraint):
+    def __init__(self):
+        super().__init__()
+    
+    async def determine_pkmn_set(self, client):
+        constants = await PokeAPIConstants.get_instance(client)
+        all_pokemon = await constants.all_pokemon
+        megas = [pokemon for pokemon in all_pokemon if "-mega" in pokemon]
+        return set(megas)
     
 
 class PokemonIsLegendaryMythical(Constraint):
@@ -321,9 +350,12 @@ class PokemonIsLegendaryMythical(Constraint):
 class PokemonCanLearnMove(Constraint):
     def __init__(self, move_name):
         super().__init__()
+        self.move_name = move_name
 
     async def determine_pkmn_set(self, client):
-        return await super().determine_pkmn_set(client)
+        move_data = await client.get_move(self.move_name)
+        pokemon_can_learn = move_data.learned_by_pokemon
+        return {pkmn.name for pkmn in pokemon_can_learn}
 
 
 class PokemonFirstSeenInGeneration(Constraint):
@@ -352,4 +384,21 @@ class PokemonTallerThan(Constraint):
     async def determine_pkmn_set(self, client):
         return await super().determine_pkmn_set(client)
     
+
+class PokemonHeavierThan(Constraint):
+    def __init__(self, pounds):
+        super().__init__()
+        self.weight = pounds
+
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
+    
+
+class PokemonLighterThan(Constraint):
+    def __init__(self, pounds):
+        super().__init__()
+        self.weight = pounds
+
+    async def determine_pkmn_set(self, client):
+        return await super().determine_pkmn_set(client)
 

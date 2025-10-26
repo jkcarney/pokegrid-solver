@@ -1,3 +1,6 @@
+from pokegrid_solver import monkeypatch_aiopoke
+monkeypatch_aiopoke.patch_all()
+
 import aiopoke
 import asyncio
 
@@ -6,22 +9,12 @@ from pokegrid_solver.pokeapi_constants import PokeAPIConstants
 
 async def entrypoint():
     async with aiopoke.AiopokeClient() as client: 
-        flying_constraint = constraints.PokemonHasType('flying')
-        flying_pokemon = await flying_constraint.determine_pkmn_set(client)
-        fire_constraint = constraints.PokemonHasType('fire')
-        fire_pokemom = await fire_constraint.determine_pkmn_set(client)
-        print(flying_pokemon & fire_pokemom)
+        data = await client.get_evolution_chain(140)
+        print(data.chain.evolves_to[0].species.name)
 
-        print("------")
-        constants = await PokeAPIConstants.get_instance(client)
-        all_types = await constants.pokemon_types
-        print(all_types)
+        
+                
 
-        print("------")
-        water_constraint = constraints.PokemonHasType('water')
-        monotype_constraint = constraints.PokemonIsMonotype(water_constraint)
-        monotypes = await monotype_constraint.determine_pkmn_set(client)
-        print(monotypes)
 
 
 
