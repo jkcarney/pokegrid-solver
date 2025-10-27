@@ -445,7 +445,7 @@ class PokemonShorterThan(Constraint):
         constants = await PokeAPIConstants.get_instance(client)
         pokemon_heights = await constants.gather_heights()
         maximum = ftinches2decimeters(self.feet, self.inches)
-        return [name for (name, height) in pokemon_heights if height < maximum]
+        return {name for (name, height) in pokemon_heights if height < maximum}
     
 
 class PokemonTallerThan(Constraint):
@@ -461,7 +461,7 @@ class PokemonTallerThan(Constraint):
         constants = await PokeAPIConstants.get_instance(client)
         pokemon_heights = await constants.gather_heights()
         maximum = ftinches2decimeters(self.feet, self.inches)
-        return [name for (name, height) in pokemon_heights if height > maximum]
+        return {name for (name, height) in pokemon_heights if height > maximum}
 
 def hg2lbs(hg):
     return hg / 4.536
@@ -480,7 +480,7 @@ class PokemonHeavierThan(Constraint):
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
         pokemon_weights = await constants.gather_weights()
-        return [name for (name, weight) in pokemon_weights if hg2lbs(weight) > self.weight]
+        return {name for (name, weight) in pokemon_weights if hg2lbs(weight) > self.weight}
     
 
 class PokemonLighterThan(Constraint):
@@ -494,5 +494,5 @@ class PokemonLighterThan(Constraint):
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
         pokemon_weights = await constants.gather_weights()
-        return [name for (name, weight) in pokemon_weights if hg2lbs(weight) < self.weight]
+        return {name for (name, weight) in pokemon_weights if hg2lbs(weight) < self.weight}
 
