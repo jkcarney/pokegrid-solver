@@ -28,6 +28,9 @@ class PokemonHasType(Constraint):
         super().__init__()
         self.type_constraint = type_constraint
 
+    def __repr__(self):
+        return f"PokemonHasType({self.type_constraint})"
+
     async def determine_pkmn_set(self, client: aiopoke.AiopokeClient) -> Set:
         type_info = await client.get_type(self.type_constraint)
         typed_pokemon = [pkmn.pokemon.name for pkmn in type_info.pokemon]
@@ -43,6 +46,9 @@ class PokemonIsMonotype(Constraint):
         """
         super().__init__()
         self._type_constraint = type_constraint
+
+    def __repr__(self):
+        return f"PokemonIsMonotype()"
 
     async def _get_all_pokemon_type_set(self, client) -> Set[str]:
         constants = await PokeAPIConstants.get_instance(client)
@@ -69,6 +75,9 @@ class PokemonIsDualType(PokemonIsMonotype):
         super().__init__()
         self._type_constraint = type_constraint
 
+    def __repr__(self):
+        return f"PokemonIsDualType()"
+    
     async def determine_pkmn_set(self, client) -> Set[str]:
         all_type_sets = await self._get_all_pokemon_type_set(client)
         counter = Counter(p for s in all_type_sets for p in s)
@@ -88,6 +97,9 @@ class PokemonResistantToType(Constraint):
     def __init__(self, resistant_to):
         super().__init__()
         self._resistant_to = resistant_to
+
+    def __repr__(self):
+        return f"PokemonResistantToType({self._resistant_to})"
     
     async def determine_pkmn_set(self, client: aiopoke.AiopokeClient) -> Set[str]:
         """
@@ -159,7 +171,10 @@ class PokemonWeakToType(Constraint):
     def __init__(self, weak_to: str):
         super().__init__()
         self.weak_to = weak_to
-    
+
+    def __repr__(self):
+        return f"PokemonWeakToType({self.weak_to})"
+
     async def determine_pkmn_set(self, client: aiopoke.AiopokeClient) -> Set[str]:
         """
         Return Pokémon whose overall damage multiplier vs the given attacking type is > 1.0.
@@ -215,6 +230,9 @@ class PokemonNeutralToType(Constraint):
     def __init__(self, neutral_to: str):
         super().__init__()
         self._neutral_to = neutral_to
+
+    def __repr__(self):
+        return f"PokemonNeutralToType({self._neutral_to})"
 
     async def determine_pkmn_set(self, client: aiopoke.AiopokeClient) -> Set[str]:
         """
@@ -281,6 +299,9 @@ class PokemonNeutralToType(Constraint):
 class PokemonFirstEvolutionLine(Constraint):
     def __init__(self):
         super().__init__()
+
+    def __repr__(self):
+        return "PokemonFirstEvolutionLine()"
     
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
@@ -291,6 +312,9 @@ class PokemonFirstEvolutionLine(Constraint):
 class PokemonMiddleEvolutionLine(Constraint):
     def __init__(self):
         super().__init__()
+    
+    def __repr__(self):
+        return "PokemonMiddleEvolutionLine()"
 
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
@@ -302,6 +326,9 @@ class PokemonFinalEvolutionLine(Constraint):
     def __init__(self):
         super().__init__()
 
+    def __repr__(self):
+        return "PokemonFinalEvolutionLine()"
+
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
         final_evolutions = await constants.final_evolutions
@@ -311,7 +338,10 @@ class PokemonFinalEvolutionLine(Constraint):
 class PokemonNoEvolutionLine(Constraint):
     def __init__(self):
         super().__init__()
-    
+        
+    def __repr__(self):
+        return "PokemonNoEvolutionLine()"
+
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
         no_evolutions = await constants.no_evolutions
@@ -320,6 +350,9 @@ class PokemonNoEvolutionLine(Constraint):
 class PokemonCanMegaEvolve(Constraint):
     def __init__(self):
         super().__init__()
+
+    def __repr__(self):
+        return "PokemonCanMegaEvolve()"
     
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
@@ -332,6 +365,9 @@ class PokemonIsMegaEvolution(Constraint):
     def __init__(self):
         super().__init__()
     
+    def __repr__(self):
+        return "PokemonIsMegaEvolution()"
+    
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
         all_pokemon = await constants.all_pokemon
@@ -342,6 +378,9 @@ class PokemonIsMegaEvolution(Constraint):
 class PokemonIsLegendaryMythical(Constraint):
     def __init__(self):
         super().__init__()
+    
+    def __repr__(self):
+        return "PokemonIsLegendaryMythical()"
     
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
@@ -354,6 +393,9 @@ class PokemonCanLearnMove(Constraint):
     def __init__(self, move_name):
         super().__init__()
         self.move_name = move_name
+    
+    def __repr__(self):
+        return f"PokemonCanLearnMove({self.move_name})"
 
     async def determine_pkmn_set(self, client):
         move_data = await client.get_move(self.move_name)
@@ -365,6 +407,9 @@ class PokemonFirstSeenInGeneration(Constraint):
     def __init__(self, gen_number):
         super().__init__()
         self._gen_number = gen_number
+    
+    def __repr__(self):
+        return f"PokemonFirstSeenInGeneration({self._gen_number})"
 
     async def determine_pkmn_set(self, client):
         generation = await client.get_generation(self._gen_number)
@@ -392,6 +437,9 @@ class PokemonShorterThan(Constraint):
         super().__init__()
         self.feet = feet
         self.inches = inches
+
+    def __repr__(self):
+        return f"PokemonShorterThan({self.feet}ft, {self.inches}in)"
     
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
@@ -405,6 +453,9 @@ class PokemonTallerThan(Constraint):
         super().__init__()
         self.feet = feet
         self.inches = inches
+
+    def __repr__(self):
+        return f"PokemonTallerThan({self.feet}ft, {self.inches}in)"
 
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
@@ -422,6 +473,9 @@ class PokemonHeavierThan(Constraint):
     def __init__(self, pounds):
         super().__init__()
         self.weight = pounds
+    
+    def __repr__(self):
+        return f"PokemonHeavierThan({self.weight})"
 
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
@@ -433,6 +487,9 @@ class PokemonLighterThan(Constraint):
     def __init__(self, pounds):
         super().__init__()
         self.weight = pounds
+    
+    def __repr__(self):
+        return f"PokemonLighterThan({self.weight})"
 
     async def determine_pkmn_set(self, client):
         constants = await PokeAPIConstants.get_instance(client)
