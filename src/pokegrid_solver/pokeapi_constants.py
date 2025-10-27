@@ -9,11 +9,16 @@ class PokeAPIConstants:
         self.client: aiopoke.AiopokeClient = client
         self._pokemon_types = None
         self._all_pokemon = None
+        self._legendaries = None
+        self._mythicals = None
 
         self._first_evolutions = None
         self._middle_evolutions = None
         self._final_evolutions = None
         self._no_evolutions = None
+        
+        self._weights = None
+        self._heights = None
         
 
     @classmethod
@@ -63,6 +68,7 @@ class PokeAPIConstants:
         return self._no_evolutions
     
 
+
     @property
     async def all_pokemon(self) -> List[str]:
         """
@@ -78,6 +84,67 @@ class PokeAPIConstants:
         self._all_pokemon = [p["name"] for p in raw_result["results"]]
         return self._all_pokemon
     
+    @property
+    async def legendary_pokemon(self) -> List[str]:
+        if self._legendaries is not None:
+            return self._legendaries
+    
+        await self._gather_legendaries_and_mythicals()
+        return self._legendaries
+        
+    @property
+    async def mythical_pokemon(self) -> List[str]:
+        if self._mythicals is not None:
+            return self._mythicals
+        
+        await self._gather_legendaries_and_mythicals()
+        return self._mythicals
+    
+    async def gather_heights(self):
+        if self._heights is not None:
+            return self._heights
+    
+        all_species = await self.client.http.get("pokemon?limit=200000&offset=0")
+        all_species = all_species["results"]
+        species_ids = [d["url"].rstrip("/").split("/")[-1] for d in all_species]
+
+        async def get_pokemon_data(entry):
+            return await self.client.get_pokemon(int(entry))
+
+        species_data = await asyncio.gather(*(get_pokemon_data(n) for n in species_ids))
+        self._heights = [(species.name, species.height) for species in species_data]
+        return self._heights
+
+    async def gather_weights(self):
+        if self._weights is not None:
+            return self._weights
+        
+        all_species = await self.client.http.get("pokemon?limit=200000&offset=0")
+        all_species = all_species["results"]
+        species_ids = [d["url"].rstrip("/").split("/")[-1] for d in all_species]
+
+        async def get_pokemon_data(entry):
+            return await self.client.get_pokemon(int(entry))
+
+        species_data = await asyncio.gather(*(get_pokemon_data(n) for n in species_ids))
+        self._weights = [(species.name, species.weight) for species in species_data]
+        return self._weights
+
+    async def _gather_legendaries_and_mythicals(self) -> None:
+        all_species = await self.client.http.get("pokemon-species?limit=200000&offset=0")
+        all_species = all_species["results"]
+        species_ids = [d["url"].rstrip("/").split("/")[-1] for d in all_species]
+
+        async def get_species_data(entry):
+            return await self.client.get_pokemon_species(int(entry))
+
+        species_data = await asyncio.gather(*(get_species_data(n) for n in species_ids))
+        legendaries = [species.name for species in species_data if species.is_legendary]
+        mythicals = [species.name for species in species_data if species.is_mythical]
+
+        self._legendaries = legendaries
+        self._mythicals = mythicals
+
     async def _classify_evolution_roles(self) -> None:
         all_evolution_chains = await self.client.http.get("evolution-chain?limit=200000&offset=0")
         all_evolution_chains = all_evolution_chains["results"]

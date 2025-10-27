@@ -285,3 +285,26 @@ async def test_pokemon_is_mega_evolution(aiopoke_client):
     assert "charizard" not in result
     assert "piplup" not in result
     
+@pytest.mark.asyncio(loop_scope="module")
+async def test_pokemon_is_heavier_than(aiopoke_client):
+    heavier_than = PokemonHeavierThan(pounds=120)
+    result = await heavier_than.determine_pkmn_set(aiopoke_client)
+
+    assert "wailord" in result
+    assert "crustle" in result
+    assert "kommo-o" in result
+
+    assert "grookey" not in result
+    assert "magikarp" not in result
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_pokemon_is_lighter_than(aiopoke_client):
+    lighter_than = PokemonLighterThan(pounds=120)
+    result = await lighter_than.determine_pkmn_set(aiopoke_client)
+
+    assert "cubone" in result
+    assert "machop" in result
+    assert "ralts" in result
+
+    assert "groudon" not in result
+    assert "celesteela" not in result

@@ -1,5 +1,6 @@
 import importlib
 
+
 def patch_evolution_detail():
     """
     Due to pokeapi.co adding extra fields and aiopoke not expecting these, we need to monkeypatch the import
