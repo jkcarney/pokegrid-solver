@@ -27,7 +27,7 @@ class PokegridSolver:
         row_constraint = self.row_constraints[row_idx]
         col_constraint = self.column_constraints[col_idx]
         possible_pokemon = ((await row_constraint.determine_pkmn_set(self.client) & await col_constraint.determine_pkmn_set(self.client)) - self.selected_pokemon)
-        ranked_pokemon = self.strategy.rank_options(possible_pokemon)
+        ranked_pokemon = await self.strategy.rank_options(possible_pokemon)
         return ranked_pokemon[:top_n]
 
     def choose_pokemon(self, name):
