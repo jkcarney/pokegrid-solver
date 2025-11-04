@@ -1,19 +1,20 @@
 rows:
   - type: PokemonHasType
+    args: ["water"]
+  - type: PokemonHasType
     args: ["steel"]
   - type: PokemonHasType
-    args: ["rock"]
-  - type: PokemonIsDualType
+    args: ["psychic"]
 
 columns:
-  - type: PokemonCanLearnMove
-    args: ["stone-edge"]
-  - type: PokemonNeutralToType
-    args: ["fire"]
-  - type: PokemonHighestBaseStat
-    args: ["defense"]
+  - type: PokemonHasType
+    args: ["fighting"]
+  - type: PokemonTallerThan
+    args: [3, 0]
+  - type: PokemonMiddleEvolutionLine
 
-pokegrid_id: 701
+
+pokegrid_id: 702
 
 strategy:
   # RandomPokegridStrategy, ChatGPTStrategy, ReverseChatGPTBaselineStrategy
@@ -21,10 +22,10 @@ strategy:
   # params:
   #   request_return: 20
 
-  name: ReverseChatGPTBaselineStrategy
-  params:
-    request_return: 20
+#  name: ReverseChatGPTBaselineStrategy
+#  params:
+#    request_return: 20
 
-  # name: RandomPokegridStrategy
-  # params:
+   name: RandomPokegridStrategy
+   params:
 
