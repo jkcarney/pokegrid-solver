@@ -17,7 +17,7 @@ class PokegridSolver:
         self.selected_pokemon = set()
         self.client = client
 
-    async def suggest_for_constraint(self, row_idx: int, col_idx: int, top_n = 5):
+    async def suggest_for_constraint(self, row_idx: int, col_idx: int, top_n = 5) -> tuple[list[str], int]:
         if row_idx < 0 or row_idx > 2:
             raise ValueError("row_idx needs to be between 0 and 2")
         
@@ -28,7 +28,7 @@ class PokegridSolver:
         col_constraint = self.column_constraints[col_idx]
         possible_pokemon = ((await row_constraint.determine_pkmn_set(self.client) & await col_constraint.determine_pkmn_set(self.client)) - self.selected_pokemon)
         ranked_pokemon = await self.strategy.rank_options(possible_pokemon)
-        return ranked_pokemon[:top_n]
+        return ranked_pokemon[:top_n], len(possible_pokemon)
 
     def choose_pokemon(self, name):
         self.selected_pokemon.add(name)

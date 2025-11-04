@@ -1,0 +1,30 @@
+rows:
+  - type: PokemonHasType
+    args: ["steel"]
+  - type: PokemonHasType
+    args: ["rock"]
+  - type: PokemonIsDualType
+
+columns:
+  - type: PokemonCanLearnMove
+    args: ["stone-edge"]
+  - type: PokemonNeutralToType
+    args: ["fire"]
+  - type: PokemonHighestBaseStat
+    args: ["defense"]
+
+pokegrid_id: 701
+
+strategy:
+  # RandomPokegridStrategy, ChatGPTStrategy, ReverseChatGPTBaselineStrategy
+  # name: ChatGPTStrategy
+  # params:
+  #   request_return: 20
+
+  name: ReverseChatGPTBaselineStrategy
+  params:
+    request_return: 20
+
+  # name: RandomPokegridStrategy
+  # params:
+

@@ -156,6 +156,9 @@ class PokeAPIConstants:
             is_highest = True
 
             for stat in species.stats:
+                if stat.stat.name == stat_name:
+                    continue
+                
                 if stat.base_stat > stat_to_beat or stat.base_stat == stat_to_beat:
                     is_highest = False
             

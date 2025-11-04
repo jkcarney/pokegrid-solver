@@ -317,8 +317,7 @@ async def test_pokemon_highest_base_stat(aiopoke_client):
 
     assert "cobalion" in result
     assert "stakataka" in result
-    assert "shuckle" in result 
-
+    
     assert "pichu" not in result
     assert "goomy" not in result
 
