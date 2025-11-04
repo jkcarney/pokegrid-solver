@@ -24,7 +24,8 @@ from pokegrid_solver.constraints import (
     PokemonCanMegaEvolve,
     PokemonIsMegaEvolution,
     PokemonHeavierThan,
-    PokemonLighterThan
+    PokemonLighterThan,
+    PokemonHighestBaseStat
 )
 
 @pytest_asyncio.fixture(loop_scope="module")
@@ -308,3 +309,16 @@ async def test_pokemon_is_lighter_than(aiopoke_client):
 
     assert "groudon" not in result
     assert "celesteela" not in result
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_pokemon_highest_base_stat(aiopoke_client):
+    defense_best = PokemonHighestBaseStat("defense")
+    result = await defense_best.determine_pkmn_set(aiopoke_client)
+
+    assert "cobalion" in result
+    assert "stakataka" in result
+    assert "shuckle" in result 
+
+    assert "pichu" not in result
+    assert "goomy" not in result
+

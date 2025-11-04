@@ -2,6 +2,15 @@ import aiopoke
 from typing import Optional, List
 import asyncio
 
+STAT_NAME_TO_INDICES = {
+    "hp": 0,
+    "attack": 1,
+    "defense": 2,
+    "special-attack": 3,
+    "special-defense": 4,
+    "speed": 5
+}
+
 class PokeAPIConstants:
     _instance: Optional["PokeAPIConstants"] = None
 
@@ -129,6 +138,31 @@ class PokeAPIConstants:
         species_data = await asyncio.gather(*(get_pokemon_data(n) for n in species_ids))
         self._weights = [(species.name, species.weight) for species in species_data]
         return self._weights
+    
+    async def highest_base_stats(self, stat_name):
+        index = STAT_NAME_TO_INDICES[stat_name]
+
+        all_species = await self.client.http.get("pokemon?limit=200000&offset=0")
+        all_species = all_species["results"]
+        species_ids = [d["url"].rstrip("/").split("/")[-1] for d in all_species]
+
+        async def get_pokemon_data(entry):
+            return await self.client.get_pokemon(int(entry))
+        
+        species_data = await asyncio.gather(*(get_pokemon_data(n) for n in species_ids))
+        pkmn_names = []
+        for species in species_data:
+            stat_to_beat = species.stats[index].base_stat
+            is_highest = True
+
+            for stat in species.stats:
+                if stat.base_stat > stat_to_beat or stat.base_stat == stat_to_beat:
+                    is_highest = False
+            
+            if is_highest:
+                pkmn_names.append(species.name)
+        
+        return pkmn_names
 
     async def _gather_legendaries_and_mythicals(self) -> None:
         all_species = await self.client.http.get("pokemon-species?limit=200000&offset=0")

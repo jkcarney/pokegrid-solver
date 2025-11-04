@@ -496,3 +496,18 @@ class PokemonLighterThan(Constraint):
         pokemon_weights = await constants.gather_weights()
         return {name for (name, weight) in pokemon_weights if hg2lbs(weight) < self.weight}
 
+
+class PokemonHighestBaseStat(Constraint):
+    def __init__(self, stat_name):
+        super().__init__()
+        self.stat_name = stat_name
+
+    def __repr__(self):
+        return f"PokemonHighestBaseStat({self.stat_name})"
+
+    async def determine_pkmn_set(self, client):
+        constants = await PokeAPIConstants.get_instance(client)
+        highest_base_pkmn = await constants.highest_base_stats(self.stat_name)
+        return set(highest_base_pkmn)
+    
+    

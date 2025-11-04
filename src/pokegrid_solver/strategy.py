@@ -34,15 +34,15 @@ class RankedList(BaseModel):
 
     
 class ChatGPTStrategy(PokegridStrategy):
-    def __init__(self, model="gpt-5-mini-2025-08-07"):
+    def __init__(self, model="gpt-5-mini-2025-08-07", request_return=10):
         super().__init__()
         self._model = OpenAIChatModel(model)
         self._system_prompt = \
-        """
+        f"""
         You are a Pokemon game expert. You will receive a set of Pokemon names. You must rank each Pokemon by how 'unpopular' you think that Pokemon is. Ie, what is the probability or liklihood that that Pokemon is not in the collective conciousness.
         Your job is to return a list of tuples, where each tuple is a string, float where the string is the Pokemon's name as I originally gave it and the float is the score for that Pokemon.
         Higher floats mean that Pokemon is less popular, and therefore more desirable. Lower floats mean that Pokemon is very popular and much less desirable.
-        Don't worry about ordering the list, only return it in the same order I provided you with the floats attached as tuples.
+        Don't worry about ordering the list, only return it with the same Pokemon names I provided you and the associated value. Only return the top {request_return} Pokemon.
         """
         self._agent = Agent(model, output_type=RankedList, system_prompt=self._system_prompt)
     
@@ -58,13 +58,13 @@ class ChatGPTStrategy(PokegridStrategy):
 
 
 class ReverseChatGPTBaselineStrategy(ChatGPTStrategy):
-    def __init__(self, model="gpt-5-mini-2025-08-07"):
+    def __init__(self, model="gpt-5-mini-2025-08-07", request_return=10):
         super().__init__(model=model)
         self._system_prompt = \
-        """
+        f"""
         You are a Pokemon game expert. You will receive a set of Pokemon names. You must rank each Pokemon by how popular you think that Pokemon is. Ie, what is the probability or likelihood that that Pokemon is popular among the Pokemon crowd, fanbase, or general collective conciousness.
         Your job is to return a list of tuples, where each tuple is a string, float where the string is the Pokemon's name as I originally gave it and the float is the score for that Pokemon.
         Higher floats mean that Pokemon is more popular, and therefore more desirable. Lower floats mean that Pokemon is less popular and much less desirable.
-        Don't worry about ordering the list, only return it in the same order I provided you with the floats attached as tuples.
+        Don't worry about ordering the list, only return it with the same Pokemon names I provided you and the associated value. Only return the top {request_return} Pokemon.
         """
         self._agent = Agent(model, output_type=RankedList, system_prompt=self._system_prompt)

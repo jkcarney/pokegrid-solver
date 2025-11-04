@@ -9,24 +9,25 @@ load_dotenv()
 
 from pokegrid_solver import constraints
 from pokegrid_solver.pokeapi_constants import PokeAPIConstants
-from pokegrid_solver.strategy import RandomPokegridStrategy, ChatGPTStrategy
+from pokegrid_solver.strategy import RandomPokegridStrategy, ChatGPTStrategy, ReverseChatGPTBaselineStrategy
 from pokegrid_solver.solver import PokegridSolver
 
 async def entrypoint():
     async with aiopoke.AiopokeClient() as client:
         row_constraints = [
-            constraints.PokemonHasType("ghost"),
-            constraints.PokemonHasType("normal"),
-            constraints.PokemonTallerThan(feet=3, inches=0),
+            constraints.PokemonHasType("steel"),
+            constraints.PokemonHasType("rock"),
+            constraints.PokemonIsDualType()
         ]
         column_constraints = [
-            constraints.PokemonCanLearnMove("lick"),
-            constraints.PokemonResistantToType('ground'),
-            constraints.PokemonMiddleEvolutionLine(),
+            constraints.PokemonCanLearnMove("stone-edge"),
+            constraints.PokemonNeutralToType('fire'),
+            constraints.PokemonHighestBaseStat("defense")
         ]
 
         # strategy = RandomPokegridStrategy()
-        strategy = ChatGPTStrategy()
+        # strategy = ChatGPTStrategy()
+        strategy = ChatGPTStrategy(request_return=20)
         solver = PokegridSolver(
             row_constraints,
             column_constraints,
