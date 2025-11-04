@@ -11,7 +11,6 @@ from load_dotenv import load_dotenv
 import yaml
 
 from pokegrid_solver import constraints
-from pokegrid_solver.pokeapi_constants import PokeAPIConstants
 import pokegrid_solver.strategy as strategies
 from pokegrid_solver.solver import PokegridSolver
 

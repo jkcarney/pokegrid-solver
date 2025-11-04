@@ -22,10 +22,10 @@ strategy:
   # params:
   #   request_return: 20
 
-#  name: ReverseChatGPTBaselineStrategy
-#  params:
-#    request_return: 20
+  name: ReverseChatGPTBaselineStrategy
+  params:
+    request_return: 20
 
-   name: RandomPokegridStrategy
-   params:
+  #  name: RandomPokegridStrategy
+  #  params:
 
