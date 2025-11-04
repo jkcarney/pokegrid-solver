@@ -98,6 +98,7 @@ async def entrypoint(config_path, log_path):
         # Notes to self:
         # probably two good metrics are average delta between top ranked player rarity score for a given pokegrid and also the most common rarity score
         # probably also want to factor in how many options are available in total.
+        # (1 - (actual) / 100) * (1 / sqrt(count of possible answers))
 
     if results:
         with open(log_path, "a", encoding="utf-8") as f:
